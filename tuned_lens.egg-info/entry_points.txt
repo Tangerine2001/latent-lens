@@ -1,0 +1,2 @@
+[console_scripts]
+tuned-lens = tuned_lens.__main__:run

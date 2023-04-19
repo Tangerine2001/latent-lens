@@ -1,4 +1,5 @@
 .venv
 .conda
 .pytest_cache
-*.json
+datasets
+keys.json

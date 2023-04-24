@@ -157,8 +157,13 @@ def main(args):
         args.tokenizer or args.model_name,
         revision=args.revision,
         use_fast=not args.slow_tokenizer,
-        tokenizer_type=args.tokenizer_class,
+        tokenizer_type=args.tokenizer_type,
     )
+    # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    # pad to eos
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+
     assert isinstance(tokenizer, PreTrainedTokenizerBase)
     silence_datasets_messages()
 
@@ -178,11 +183,10 @@ def main(args):
     # processed = chunk_and_tokenize(dataset, tokenizer, text_key=args.text_column)
     # nats_to_bpb = compute_nats_to_bpb_ratio(dataset, processed)
 
-    dataDir = "../../datasets/"
+    dataDir = "datasets/"
     with open(dataDir +"related.json", "r") as f:
         relatedJson = json.load(f)
-    tokenizer = AutoTokenizer.from_pretrained("gpt2", padding_side='left', return_special_tokens_mask=True)
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    
     # print(tokenizer.pad_token_id)
     processed = RelatedDataset(relatedJson, tokenizer)
 

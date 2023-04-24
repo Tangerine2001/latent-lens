@@ -35,6 +35,11 @@ class RelatedCollator():
         response = self.textCollator(response)
         related = self.textCollator(related)
 
+        # causing index out of range error
+        del prompt["labels"]
+        del response["labels"]
+        del related["labels"]
+
         prompt["attention_mask"] = th.where(prompt["input_ids"] == self.pad_token_id, 0, 1)
         response["attention_mask"] = th.where(response["input_ids"] == self.pad_token_id, 0, 1)
         related["attention_mask"] = th.where(related["input_ids"] == self.pad_token_id, 0, 1)
@@ -77,7 +82,7 @@ def train_loop_latent(
     #     batch_size=args.per_gpu_batch_size,
     # )
     collator = RelatedCollator(tokenizer, data.pad_to_multiple_of)
-    dl = DataLoader(data, batch_size=2, collate_fn=collator, shuffle=True)
+    dl = DataLoader(data, batch_size=args.per_gpu_batch_size, collate_fn=collator, shuffle=True)
     if args.wandb and local_rank == 0:
         import wandb
 
@@ -176,10 +181,14 @@ def train_loop_latent(
 
     pbar = tqdm(islice(dl, total_batches), desc="Training", total=total_batches)
     for batch_idx, batch_t in enumerate(pbar, start=1):
-        assert isinstance(batch_t, dict)
         batch_t = send_to_device(batch_t, th.device(local_rank))
         batch, response, related = batch_t
+        assert isinstance(batch, dict)
         with th.autocast("cuda"):
+            # print(batch.keys())
+            # print(batch)
+            # print(batch["input_ids"].shape)
+            # print(batch["attention_mask"].shape)
             output = model(**batch, output_hidden_states=True)
 
         final_logits = output.logits
@@ -212,7 +221,9 @@ def train_loop_latent(
         for i, (name, h) in enumerate(stream.items()):
             # bfloat16 has larger dynamic range than float16 and seems to be better for
             # computing log softmax & KL loss
-            with th.autocast("cuda", dtype=th.bfloat16):
+            bfloat16_available = th.cuda.get_device_capability()[0] >= 8
+            floatDtype = th.bfloat16 if bfloat16_available else th.float16
+            with th.autocast("cuda", dtype=floatDtype):
                 logits = shift_preds(ddp_lens(h, idx=i), shift)
 
                 # default losses
@@ -240,9 +251,10 @@ def train_loop_latent(
                     # dont shift full_att because this is pad for input
 
                     if args.loss == "ce":
-                        lossj = th.nn.functional.cross_entropy(
+                        lossj = th.sum(
+                                th.nn.functional.cross_entropy(
                             logits.flatten(0, -2), labelj.flatten(), ignore_index=data.pad_token_id, reduction="none"
-                        ) * full_att.flatten() / full_att.sum()
+                        ) * full_att.flatten()) / full_att.sum()
                     elif args.loss == "kl":
                         lossj = th.sum(
                             full_att * labelj.exp() * (labelj - logits.log_softmax(-1)), dim=-1
@@ -251,6 +263,8 @@ def train_loop_latent(
                         raise NotImplementedError
                     
                     loss += lossj
+
+                # print(loss)
 
                 # Log the loss *before* LASSO regularization
                 logging_loss = loss.detach()

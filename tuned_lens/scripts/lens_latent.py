@@ -1,6 +1,6 @@
 """Train or evaluate a tuned lens for a language model."""
 
-from datasets import Dataset, DatasetDict, load_dataset, DataLoader
+from datasets import Dataset, DatasetDict, load_dataset
 from functools import partial
 from hashlib import md5
 from torch.distributed.fsdp import (
@@ -33,6 +33,7 @@ import pickle
 import shutil
 import torch as th
 import torch.distributed as dist
+import torch.utils.data.dataloader as dataloader
 
 
 # json with strings to tuple of tensors
@@ -182,10 +183,10 @@ def main(args):
         relatedJson = json.load(f)
     tokenizer = AutoTokenizer.from_pretrained("gpt2", padding_side='left', return_special_tokens_mask=True)
     tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-    print(tokenizer.pad_token_id)
+    # print(tokenizer.pad_token_id)
     processed = RelatedDataset(relatedJson, tokenizer)
 
-    nats_to_bpb = 1.0
+    nats_to_bpb = 1.0 # unused
     print(f"Using nats per token to bits per byte ratio: {nats_to_bpb}")
 
     assert isinstance(processed, Dataset)

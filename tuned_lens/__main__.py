@@ -1,6 +1,7 @@
 """Script to train or evaluate a set of tuned lenses for a language model."""
 
 from .scripts.lens import main as lens_main
+from .scripts.lens_latent import main as lens_main_latent
 from argparse import ArgumentParser
 from contextlib import nullcontext, redirect_stdout
 from pathlib import Path
@@ -15,6 +16,7 @@ def run():
     )
     # Arguments shared by train and eval; see https://stackoverflow.com/a/56595689.
     parent_parser = ArgumentParser(add_help=False)
+    parent_parser.add_argument("lens_type", type=str, help="Type of lens to use. Can be either 'tuned' or 'latent'.", default="tuned")
     parent_parser.add_argument(
         "model_name", type=str, help="Name of model to use in the Huggingface Hub."
     )
@@ -274,9 +276,16 @@ def run():
 
                 args.output = step_output
                 args.revision = f"step{step}"
-                lens_main(args)
+                if args.lens_type == "tuned":
+                    lens_main(args)
+                else:
+                    lens_main_latent(args)
+
         else:
-            lens_main(args)
+            if args.lens_type == "tuned":
+                lens_main(args)
+            else:
+                lens_main_latent(args)
 
 
 if __name__ == "__main__":

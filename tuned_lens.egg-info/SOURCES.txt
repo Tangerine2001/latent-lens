@@ -15,6 +15,7 @@ tuned_lens/__init__.py
 tuned_lens/__main__.py
 tuned_lens/data.py
 tuned_lens/load_artifacts.py
+tuned_lens/main_latent.py
 tuned_lens/model_surgery.py
 tuned_lens/residual_stream.py
 tuned_lens/utils.py
@@ -41,7 +42,9 @@ tuned_lens/scripts/cbe.py
 tuned_lens/scripts/downstream.py
 tuned_lens/scripts/eval_loop.py
 tuned_lens/scripts/lens.py
+tuned_lens/scripts/lens_latent.py
 tuned_lens/scripts/train_loop.py
+tuned_lens/scripts/train_loop_latent.py
 tuned_lens/stats/__init__.py
 tuned_lens/stats/anomaly.py
 tuned_lens/stats/dimensionality.py

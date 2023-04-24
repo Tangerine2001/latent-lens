@@ -263,8 +263,7 @@ def train_loop_latent(
                         raise NotImplementedError
                     
                     loss += lossj
-
-                # print(loss)
+                print(loss)
 
                 # Log the loss *before* LASSO regularization
                 logging_loss = loss.detach()

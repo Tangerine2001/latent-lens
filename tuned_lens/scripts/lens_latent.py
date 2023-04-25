@@ -69,6 +69,11 @@ class RelatedDataset(Dataset):
         relatedStr = related[0]
         for r in related[1:]:
             relatedStr += " " + r
+
+        relatedStr = relatedStr.replace(".","")
+        relatedStr = relatedStr.replace(",","")
+        relatedStr = relatedStr.replace("  "," ")
+
         return prompt, response, relatedStr
 
 def main(args):

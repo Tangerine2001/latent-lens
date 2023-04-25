@@ -240,6 +240,7 @@ def train_loop_latent(
                 
                 # related losses
                 loss = 0
+                full_att_sum_non_zero = 0
                 for j in range(labels_related.shape[1]):
                     labelj = labels_related[:,j:j+1]
                     labelj = labelj.expand(-1, logits.shape[1])
@@ -255,23 +256,26 @@ def train_loop_latent(
                     # print(full_att.shape)
                     # print(logits.shape)
                     # print(full_att.sum())
-                    full_att_sum_non_zero = full_att.sum() if full_att.sum() > 0 else 1
+                    full_att_sum_non_zero += full_att.sum()
 
                     if args.loss == "ce":
                         lossj = th.sum(
                                 th.nn.functional.cross_entropy(
                             logits.flatten(0, -2), labelj.flatten(), ignore_index=data.pad_token_id, reduction="none"
-                        ) * full_att.flatten()) / full_att_sum_non_zero
+                        ) * full_att.flatten()) # / full_att_sum_non_zero
                     elif args.loss == "kl":
                         lossj = th.sum(
                             full_att * labelj.exp() * (labelj - logits.log_softmax(-1)), dim=-1
-                        ).sum() / full_att_sum_non_zero
+                        ).sum() # / full_att_sum_non_zero
                     else:
                         raise NotImplementedError
                     # print(lossj)
                     
                     loss += lossj
-                print(loss)
+
+                full_att_sum_non_zero = full_att_sum_non_zero if full_att_sum_non_zero > 0 else 0
+                loss = loss / full_att_sum_non_zero
+                # print(loss)
 
                 # Log the loss *before* LASSO regularization
                 logging_loss = loss.detach()

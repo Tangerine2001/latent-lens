@@ -61,8 +61,8 @@ class RelatedDataset(Dataset):
         return promptT, responseT, relatedT
 
     def formatText(self, idx):
+        # print("data index", idx)
         prompt = self.dataJson[idx]['requested_rewrite']['prompt']
-        print(idx)
         prompt = prompt.replace("{}", self.dataJson[idx]['requested_rewrite']['subject'])
         response = self.dataJson[idx]['requested_rewrite']['target_true']["str"] + "."
         related = self.dataJson[idx]['relatedWords']

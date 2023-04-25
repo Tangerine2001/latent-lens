@@ -89,7 +89,6 @@ def train_loop_latent(
         *_, name = args.model_name.split("/")
         wandb.init(
             config=vars(args),
-            entity="eleutherai",
             group=name,
             name=args.wandb,
             project="tuned-lens",

@@ -4,3 +4,4 @@
 datasets
 keys.json
 *.pyc
+wandb/*

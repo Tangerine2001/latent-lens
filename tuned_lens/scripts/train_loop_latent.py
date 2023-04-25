@@ -273,7 +273,7 @@ def train_loop_latent(
                     
                     loss += lossj
 
-                full_att_sum_non_zero = full_att_sum_non_zero if full_att_sum_non_zero > 0 else 0
+                full_att_sum_non_zero = full_att_sum_non_zero if full_att_sum_non_zero > 0 else 1
                 loss = loss / full_att_sum_non_zero
                 # print(loss)
 

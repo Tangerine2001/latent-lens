@@ -62,6 +62,7 @@ class RelatedDataset(Dataset):
 
     def formatText(self, idx):
         prompt = self.dataJson[idx]['requested_rewrite']['prompt']
+        print(idx)
         prompt = prompt.replace("{}", self.dataJson[idx]['requested_rewrite']['subject'])
         response = self.dataJson[idx]['requested_rewrite']['target_true']["str"] + "."
         related = self.dataJson[idx]['relatedWords']
@@ -186,6 +187,8 @@ def main(args):
     dataDir = "datasets/"
     with open(dataDir +"related.json", "r") as f:
         relatedJson = json.load(f)
+
+    print("related dataset", len(relatedJson))
     
     # print(tokenizer.pad_token_id)
     processed = RelatedDataset(relatedJson, tokenizer)

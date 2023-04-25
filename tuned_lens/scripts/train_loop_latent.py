@@ -250,17 +250,25 @@ def train_loop_latent(
                     full_att = batch["attention_mask"] * labelj_att
                     # dont shift full_att because this is pad for input
 
+                    # print(labels_related.shape)
+                    # print(labelj.shape)
+                    # print(full_att.shape)
+                    # print(logits.shape)
+                    # print(full_att.sum())
+                    full_att_sum_non_zero = full_att.sum() if full_att.sum() > 0 else 1
+
                     if args.loss == "ce":
                         lossj = th.sum(
                                 th.nn.functional.cross_entropy(
                             logits.flatten(0, -2), labelj.flatten(), ignore_index=data.pad_token_id, reduction="none"
-                        ) * full_att.flatten()) / full_att.sum()
+                        ) * full_att.flatten()) / full_att_sum_non_zero
                     elif args.loss == "kl":
                         lossj = th.sum(
                             full_att * labelj.exp() * (labelj - logits.log_softmax(-1)), dim=-1
-                        ).sum() / full_att.sum()
+                        ).sum() / full_att_sum_non_zero
                     else:
                         raise NotImplementedError
+                    # print(lossj)
                     
                     loss += lossj
                 print(loss)

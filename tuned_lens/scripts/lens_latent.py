@@ -159,11 +159,16 @@ def main(args):
     else:
         model.to(local_rank)
 
+    from torchinfo import summary
+    print(summary(model))
+    print(summary(lens))
+
     tokenizer = AutoTokenizer.from_pretrained(
         args.tokenizer or args.model_name,
         revision=args.revision,
         use_fast=not args.slow_tokenizer,
         tokenizer_type=args.tokenizer_type,
+        padding_side='left'
     )
     # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     # pad to eos

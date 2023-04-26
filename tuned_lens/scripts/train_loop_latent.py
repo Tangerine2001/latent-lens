@@ -89,9 +89,10 @@ def train_loop_latent(
         *_, name = args.model_name.split("/")
         wandb.init(
             config=vars(args),
+            entity="latent-lens",
             group=name,
             name=args.wandb,
-            project="tuned-lens",
+            project="latent-lens",
         )
         wandb.watch(lens)
 
@@ -215,6 +216,7 @@ def train_loop_latent(
 
         labels_related = related["input_ids"]
         labels_related_att = related["attention_mask"]
+        labels_related_att_sum = th.sum(labels_related_att)
 
         # We do this sequentially to save VRAM
         for i, (name, h) in enumerate(stream.items()):
@@ -255,29 +257,77 @@ def train_loop_latent(
                     # print(full_att.shape)
                     # print(logits.shape)
                     # print(full_att.sum())
-                    full_att_sum_non_zero += full_att.sum()
+                    # sum of non pad elements in both batch and label
+                    full_att_sum_non_zero = full_att.sum()
+                    if not full_att_sum_non_zero > 0:
+                        full_att_sum_non_zero = 1
 
                     if args.loss == "ce":
                         lossj = th.sum(
                                 th.nn.functional.cross_entropy(
                             logits.flatten(0, -2), labelj.flatten(), ignore_index=data.pad_token_id, reduction="none"
-                        ) * full_att.flatten()) # / full_att_sum_non_zero
+                        ) * full_att.flatten() / full_att_sum_non_zero)
                     elif args.loss == "kl":
                         lossj = th.sum(
                             full_att * labelj.exp() * (labelj - logits.log_softmax(-1)), dim=-1
-                        ).sum() # / full_att_sum_non_zero
+                        ).sum() / full_att_sum_non_zero
                     else:
                         raise NotImplementedError
                     # print(lossj)
+
+                    # check if nan
+                    if th.any(lossj.isnan()):
+                        print("nan loss", lossj)
+                        print("batch_shape", batch["input_ids"].shape)
+                        print("batch", batch)
+                        
+                        print("labels_related_shape", labels_related.shape)
+                        print("labels_related", labels_related)
+                        print("labels_related_att_shape", labels_related_att.shape)
+                        print("labels_related_att", labels_related_att)
+                        print("full_att_sum_non_zero", full_att_sum_non_zero)
+
+                        print("name", name, i)
+                        print("labelj_shape", labelj.shape)
+                        print("labelj", labelj)
+                        print("labelj_att_shape", labelj_att.shape)
+                        print("labelj_att", labelj_att)
+                        print("full_att_shape", full_att.shape)
+                        print("full_att", full_att)
+                        print("logits_shape", logits.shape)
+                        print("logits", logits)
+                        print("grad_acc_steps", grad_acc_steps)
+
+                        exit()
                     
                     loss += lossj
 
-                full_att_sum_non_zero = full_att_sum_non_zero if full_att_sum_non_zero > 0 else 1
-                loss = loss / full_att_sum_non_zero
+                if not labels_related_att_sum > 0:
+                    labels_related_att_sum = 1
+
+                loss = loss / labels_related_att_sum
                 # print(loss)
 
                 # Log the loss *before* LASSO regularization
                 logging_loss = loss.detach()
+
+                # check if nan
+                print("name", name, i)
+                print("loss", loss)
+                print("batch_shape", batch["input_ids"].shape)
+                print("batch", batch)
+                print("labels_shape", labels.shape)
+                print("labels", labels)
+                    
+                print("labels_related_shape", labels_related.shape)
+                print("labels_related", labels_related)
+                print("labels_related_att_shape", labels_related_att.shape)
+                print("labels_related_att", labels_related_att)
+                print("labels_related_att_sum", labels_related_att_sum)
+                    
+                if th.any(logging_loss.isnan()):
+                    exit()
+
                 maybe_all_reduce(logging_loss)
                 if local_rank == 0:
                     metrics[f"loss/{name}"].append(logging_loss)
@@ -289,6 +339,7 @@ def train_loop_latent(
 
                 scaled_loss = loss / grad_acc_steps
 
+            print("loss", scaled_loss, labels_related_att_sum, grad_acc_steps)
             scaled_loss.backward()
 
         step, rem = divmod(batch_idx, grad_acc_steps)

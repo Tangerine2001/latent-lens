@@ -26,6 +26,8 @@ from tuned_lens.model_surgery import get_transformer_layers
 from tuned_lens.scripts import (
     downstream_loop,
     eval_loop,
+    eval_loop_latent,
+    train_loop,
     train_loop_latent,
 )
 import json
@@ -213,6 +215,6 @@ def main(args):
     if args.command == "train":
         train_loop_latent(args, tokenizer, model, processed, lens, float(nats_to_bpb))
     elif args.command == "eval":
-        eval_loop(args, model, processed, lens, float(nats_to_bpb))
+        eval_loop_latent(args, tokenizer, model, processed, lens, float(nats_to_bpb))
     else:
         raise ValueError(f"Unknown command: {args.command}")

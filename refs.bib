@@ -1,0 +1,33 @@
+@Article{Meng2022,
+  author        = {Meng, Kevin and Bau, David and Andonian, Alex and Belinkov, Yonatan},
+  title         = {Locating and Editing Factual Associations in GPT},
+  year          = {2022},
+  month         = feb,
+  abstract      = {We analyze the storage and recall of factual associations in autoregressive transformer language models, finding evidence that these associations correspond to localized, directly-editable computations. We first develop a causal intervention for identifying neuron activations that are decisive in a model's factual predictions. This reveals a distinct set of steps in middle-layer feed-forward modules that mediate factual predictions while processing subject tokens. To test our hypothesis that these computations correspond to factual association recall, we modify feed-forward weights to update specific factual associations using Rank-One Model Editing (ROME). We find that ROME is effective on a standard zero-shot relation extraction (zsRE) model-editing task, comparable to existing methods. To perform a more sensitive evaluation, we also evaluate ROME on a new dataset of counterfactual assertions, on which it simultaneously maintains both specificity and generalization, whereas other methods sacrifice one or another. Our results confirm an important role for mid-layer feed-forward modules in storing factual associations and suggest that direct manipulation of computational mechanisms may be a feasible approach for model editing. The code, dataset, visualizations, and an interactive demo notebook are available at https://rome.baulab.info/},
+  archiveprefix = {arXiv},
+  copyright     = {arXiv.org perpetual, non-exclusive license},
+  doi           = {10.48550/ARXIV.2202.05262},
+  eprint        = {2202.05262},
+  file          = {:http\://arxiv.org/pdf/2202.05262v5:PDF},
+  keywords      = {Computation and Language (cs.CL), Machine Learning (cs.LG), FOS: Computer and information sciences, I.2.7},
+  primaryclass  = {cs.CL},
+  publisher     = {arXiv},
+}
+
+@Article{Belrose2023,
+  author        = {Belrose, Nora and Furman, Zach and Smith, Logan and Halawi, Danny and Ostrovsky, Igor and McKinney, Lev and Biderman, Stella and Steinhardt, Jacob},
+  title         = {Eliciting Latent Predictions from Transformers with the Tuned Lens},
+  year          = {2023},
+  month         = mar,
+  abstract      = {We analyze transformers from the perspective of iterative inference, seeking to understand how model predictions are refined layer by layer. To do so, we train an affine probe for each block in a frozen pretrained model, making it possible to decode every hidden state into a distribution over the vocabulary. Our method, the tuned lens, is a refinement of the earlier "logit lens" technique, which yielded useful insights but is often brittle. We test our method on various autoregressive language models with up to 20B parameters, showing it to be more predictive, reliable and unbiased than the logit lens. With causal experiments, we show the tuned lens uses similar features to the model itself. We also find the trajectory of latent predictions can be used to detect malicious inputs with high accuracy. All code needed to reproduce our results can be found at https://github.com/AlignmentResearch/tuned-lens.},
+  archiveprefix = {arXiv},
+  copyright     = {Creative Commons Attribution 4.0 International},
+  doi           = {10.48550/ARXIV.2303.08112},
+  eprint        = {2303.08112},
+  file          = {:http\://arxiv.org/pdf/2303.08112v2:PDF},
+  keywords      = {Machine Learning (cs.LG), FOS: Computer and information sciences},
+  primaryclass  = {cs.LG},
+  publisher     = {arXiv},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

@@ -111,8 +111,14 @@ def eval_loop_latent(
     for batch_t in pbar:
         batch_t = send_to_device(batch_t, th.device(local_rank))
         batch, response, related = batch_t
+        # batch is left pad, response is right pad, related is left pad
+        # _ _ _ _ prompt | response _ _ _
         with record_residual_stream(model) as stream:
             output = model(**batch)
+
+        # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
+        full_att = th.cat([batch["attention_mask"], response["attention_mask"]], dim=1)
+        responseOutput = model(input_ids=response["input_ids"], attention_mask=full_att, past_key_values=output.past_key_values)
 
         shift = args.token_shift if args.token_shift is not None else 1
         final_lps = output.logits.log_softmax(dim=-1)

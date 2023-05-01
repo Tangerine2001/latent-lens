@@ -27,6 +27,7 @@ from transformers import DataCollatorForLanguageModeling, PreTrainedTokenizerBas
 # batching and padding, use left pad tokkenizer
 class RelatedCollator():
     def __init__(self, tokenizer, pad_to_multiple_of=1):
+        self.tokenizer = tokenizer
         self.textCollator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False, pad_to_multiple_of=pad_to_multiple_of)
         self.pad_token_id = tokenizer.pad_token_id
 
@@ -34,8 +35,11 @@ class RelatedCollator():
         prompt, response, related = zip(*batch)
 
         # print(prompt)
+        self.tokenizer.padding_side = "left"
         prompt = self.textCollator(prompt)
+        self.tokenizer.padding_side = "right"
         response = self.textCollator(response)
+        self.tokenizer.padding_side = "left"
         related = self.textCollator(related)
 
         # causing index out of range error

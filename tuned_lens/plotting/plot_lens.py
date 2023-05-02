@@ -28,6 +28,11 @@ def plot_lens(
     *,
     text: Optional[str] = None,
     input_ids: Optional[th.Tensor] = None,
+    input_att_mask: Optional[th.Tensor] = None,
+    response_ids: Optional[th.Tensor] = None,
+    response_att_mask: Optional[th.Tensor] = None,
+    related_ids: Optional[th.Tensor] = None,
+    related_att_mask: Optional[th.Tensor] = None,
     mask_input: bool = False,
     start_pos: int = 0,
     end_pos: Optional[int] = None,
@@ -92,7 +97,19 @@ def plot_lens(
         raise ValueError("Input must be at least 1 token long.")
 
     with record_residual_stream(model) as stream:
-        outputs = model(input_ids.to(model.device))
+        if input_att_mask is None:
+            outputs = model(input_ids.to(model.device))
+        else:
+        # prompt is left pad, response is right pad, related is left pad
+        # _ _ _ _ prompt | response _ _ _
+            outputs = model(input_ids.to(model.device), attention_mask=input_att_mask)
+
+    # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
+    if input_att_mask is not None and response_att_mask is not None:
+        full_att = th.cat(input_att_mask, response_att_mask, dim=1)
+        responseOutput = model(input_ids=response_ids, attention_mask=full_att, past_key_values=outputs.past_key_values)
+    elif response_ids is not None:
+        responseOutput = model(input_ids=response_ids, past_key_values=outputs.past_key_values)
 
     tokens = tokenizer.convert_ids_to_tokens(input_ids.squeeze().tolist())
     model_logits = outputs.logits[..., start_pos:end_pos, :]

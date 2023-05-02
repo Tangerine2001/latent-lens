@@ -40,7 +40,7 @@ import torch.utils.data.dataloader as dataloader
 
 # json with strings to tuple of tensors
 class RelatedDataset(Dataset):
-    def __init__(self, dataJson, tokenizer):
+    def __init__(self, dataJson, tokenizer, pad_to_multiple_of=1):
         self.dataJson = dataJson
         self.tokenizer = tokenizer
         self.pad_token_id = tokenizer.pad_token_id
@@ -48,7 +48,7 @@ class RelatedDataset(Dataset):
         self.maxLenPrompt = 0
         self.maxLenResponse = 0
         self.maxLenRelated = 0
-        self.pad_to_multiple_of = 32
+        self.pad_to_multiple_of = pad_to_multiple_of
 
     def __len__(self):
         return len(self.dataJson)
@@ -203,7 +203,7 @@ def main(args):
     print("related dataset", len(relatedJson))
     
     # print(tokenizer.pad_token_id)
-    processed = RelatedDataset(relatedJson, tokenizer)
+    processed = RelatedDataset(relatedJson, tokenizer, pad_to_multiple_of=32)
 
     nats_to_bpb = 1.0 # unused
     print(f"Using nats per token to bits per byte ratio: {nats_to_bpb}")

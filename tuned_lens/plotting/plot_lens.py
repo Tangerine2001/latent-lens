@@ -101,15 +101,15 @@ def get_lens_stream( # same input at plot_lens returns part of the way through
         else:
         # prompt is left pad, response is right pad, related is left pad
         # _ _ _ _ prompt | response _ _ _
-            outputs = model(input_ids.to(model.device), attention_mask=input_att_mask)
+            outputs = model(input_ids.to(model.device), attention_mask=input_att_mask.to(model.device))
 
     responseOutput = None
     # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
     if input_att_mask is not None and response_att_mask is not None:
-        full_att = th.cat(input_att_mask, response_att_mask, dim=1)
-        responseOutput = model(input_ids=response_ids, attention_mask=full_att, past_key_values=outputs.past_key_values)
+        full_att = th.cat([input_att_mask, response_att_mask], dim=1)
+        responseOutput = model(input_ids=response_ids.to(model.device), attention_mask=full_att.to(model.device), past_key_values=outputs.past_key_values)
     elif response_ids is not None:
-        responseOutput = model(input_ids=response_ids, past_key_values=outputs.past_key_values)
+        responseOutput = model(input_ids=response_ids.to(model.device), past_key_values=outputs.past_key_values)
 
     tokens = tokenizer.convert_ids_to_tokens(input_ids.squeeze().tolist())
     model_logits = outputs.logits[..., start_pos:end_pos, :]
@@ -237,7 +237,7 @@ def plot_lens(
 
     # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
     if input_att_mask is not None and response_att_mask is not None:
-        full_att = th.cat(input_att_mask, response_att_mask, dim=1)
+        full_att = th.cat([input_att_mask, response_att_mask], dim=1)
         responseOutput = model(input_ids=response_ids, attention_mask=full_att, past_key_values=outputs.past_key_values)
     elif response_ids is not None:
         responseOutput = model(input_ids=response_ids, past_key_values=outputs.past_key_values)
@@ -276,8 +276,8 @@ def plot_lens(
         outputs.logits.log_softmax(dim=-1)[..., start_pos:end_pos, :]
     )
 
-    print(hidden_lps.layers)
-    print(hidden_lps.layers[0].shape)
+    # print(hidden_lps.layers)
+    # print(hidden_lps.layers[0].shape)
 
     # Replace whitespace and newline tokens with their respective replacements
     format_fn = np.vectorize(

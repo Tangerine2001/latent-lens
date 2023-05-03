@@ -101,7 +101,7 @@ def get_lens_stream( # same input at plot_lens returns part of the way through
         else:
         # prompt is left pad, response is right pad, related is left pad
         # _ _ _ _ prompt | response _ _ _
-            outputs = model(input_ids.to(model.device), attention_mask=input_att_mask.to(model.device))
+            outputs = model(input_ids=input_ids.to(model.device), attention_mask=input_att_mask.to(model.device))
 
     responseOutput = None
     # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
@@ -147,7 +147,7 @@ def get_lens_stream( # same input at plot_lens returns part of the way through
 
     # print(hidden_lps.layers)
     # print(hidden_lps.layers[0].shape)
-    return hidden_lps, responseOutput
+    return hidden_lps, responseOutput, outputs
 
 
 @th.autocast("cuda", enabled=th.cuda.is_available())

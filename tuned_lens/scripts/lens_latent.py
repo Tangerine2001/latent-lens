@@ -66,7 +66,7 @@ class RelatedDataset(Dataset):
         # print("data index", idx)
         prompt = self.dataJson[idx]['requested_rewrite']['prompt']
         prompt = prompt.replace("{}", self.dataJson[idx]['requested_rewrite']['subject'])
-        response = self.dataJson[idx]['requested_rewrite']['target_true']["str"] + "."
+        response = " " + self.dataJson[idx]['requested_rewrite']['target_true']["str"] + "."
         related = self.dataJson[idx]['relatedWords']
         relatedStr = related[0]
         for r in related[1:]:
@@ -203,7 +203,7 @@ def main(args):
     print("related dataset", len(relatedJson))
     
     # print(tokenizer.pad_token_id)
-    processed = RelatedDataset(relatedJson, tokenizer, pad_to_multiple_of=32)
+    processed = RelatedDataset(relatedJson, tokenizer, pad_to_multiple_of=1)
 
     nats_to_bpb = 1.0 # unused
     print(f"Using nats per token to bits per byte ratio: {nats_to_bpb}")

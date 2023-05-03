@@ -1,7 +1,8 @@
 .venv
 .conda
 .pytest_cache
-datasets
+datasets/counterfact.json
+datasets/*.txt
 keys.json
 *.pyc
 wandb/*

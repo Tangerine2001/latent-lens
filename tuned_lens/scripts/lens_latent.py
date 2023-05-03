@@ -116,7 +116,7 @@ def main(args):
     model.eval()
     model.requires_grad_(False)
 
-    th.cuda.set_device(local_rank)
+    #th.cuda.set_device(local_rank)
 
     # Can be set either in eval or in training; in eval it's required
     if getattr(args, "lens", None):
@@ -131,7 +131,8 @@ def main(args):
         ).float()
 
     if lens:
-        lens = lens.to(device=th.device("cuda", local_rank))
+        #lens = lens.to(device=th.device("cuda", local_rank))
+        lens = lens.to(device=th.device("cpu", local_rank))
         print(f"Using lens with config: {json.dumps(lens.config, indent=2)}")
     else:
         print("No tuned lens provided, using logit lens.")

@@ -182,7 +182,8 @@ def train_loop(
         for i, (name, h) in enumerate(stream.items()):
             # bfloat16 has larger dynamic range than float16 and seems to be better for
             # computing log softmax & KL loss
-            with th.autocast("cuda", dtype=th.bfloat16):
+            #with th.autocast("cuda", dtype=th.bfloat16):
+            with th.autocast("cpu", dtype=th.bfloat16):
                 logits = shift_preds(ddp_lens(h, idx=i), shift)
 
                 if args.loss == "ce":

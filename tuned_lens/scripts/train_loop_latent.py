@@ -190,7 +190,8 @@ def train_loop_latent(
         batch_t = send_to_device(batch_t, th.device(local_rank))
         batch, response, related = batch_t
         assert isinstance(batch, dict)
-        with th.autocast("cuda"):
+        #with th.autocast("cuda"):
+        with th.autocast("cpu"):
             # print(batch.keys())
             # print(batch)
             # print(batch["input_ids"].shape)
@@ -230,7 +231,8 @@ def train_loop_latent(
             # computing log softmax & KL loss
             bfloat16_available = th.cuda.get_device_capability()[0] >= 8
             floatDtype = th.bfloat16 if bfloat16_available else th.float16
-            with th.autocast("cuda", dtype=floatDtype):
+            #with th.autocast("cuda", dtype=floatDtype):
+            with th.autocast("cpu", dtype=floatDtype):
                 logits = shift_preds(ddp_lens(h, idx=i), shift)
 
                 # default losses

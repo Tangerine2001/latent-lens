@@ -93,7 +93,8 @@ def extract_bases(
     data = data.shuffle(seed=args.seed)  # type: ignore[arg-type]
     batch = send_to_device(data[: args.per_gpu_batch_size], th.device(local_rank))
 
-    with th.autocast("cuda"), th.no_grad():
+    #with th.autocast("cuda"), th.no_grad():
+    with th.autocast("cpu"), th.no_grad():
         outputs = model(**batch, output_hidden_states=True)
 
     basis_iter = extract_causal_bases(

@@ -18,6 +18,137 @@ import torch.nn.functional as F
 Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 Statistic = Literal["ce", "entropy", "forward_kl", "max_prob"]
 
+@th.autocast("cuda", enabled=th.cuda.is_available())
+@th.no_grad()
+def get_lens_stream( # same input at plot_lens returns part of the way through
+    model: PreTrainedModel,
+    tokenizer: Tokenizer,
+    lens: Lens,
+    *,
+    text: Optional[str] = None,
+    input_ids: Optional[th.Tensor] = None,
+    input_att_mask: Optional[th.Tensor] = None,
+    response_ids: Optional[th.Tensor] = None,
+    response_att_mask: Optional[th.Tensor] = None,
+    related_ids: Optional[th.Tensor] = None,
+    related_att_mask: Optional[th.Tensor] = None,
+    mask_input: bool = False,
+    start_pos: int = 0,
+    end_pos: Optional[int] = None,
+    layer_stride: int = 1,
+    statistic: Statistic = "entropy",
+    min_prob: float = 0.0,
+    max_string_len: Optional[int] = 7,
+    ellipsis: str = "…",
+    newline_replacement: str = "\\n",
+    newline_token: str = "Ċ",
+    whitespace_token: str = "Ġ",
+    whitespace_replacement: str = "_",
+    topk: int = 10,
+    topk_diff: bool = False,
+):
+    """Plot a lens table for the given text.
+
+    Args:
+        model: The model to be examined.
+        tokenizer: The tokenizer to use for encoding the text.
+        lens: The lens use for intermediate predictions.
+        text: The text to use for evaluated. If not provided, the input_ids will be
+            used.
+        input_ids: The input IDs to use for evaluated. If not provided, the text will
+            be encoded.
+        mask_input: Forbid the lens from predicting the input tokens.
+        start_pos: The first token id to visualize.
+        end_pos: The token id to stop visualizing before.
+        extra_decoder_layers: The number of extra decoder layers to apply after
+            before the unembeding.
+        layer_stride: The number of layers to skip between each layer displayed.
+        statistic: The statistic to use for the lens table.
+            * ce: The cross entropy between the labels and the lens predictions.
+            * entropy: The entropy of the lens prediction.
+            * forward_kl: The KL divergence between the model and the lens.
+            * max_prob: The probability of the most likely token.
+        min_prob: At least one token must have a probability greater than this for the
+            lens prediction to be displayed.
+        max_string_len: If not None, clip the string representation of the tokens to
+            this length and add an ellipsis.
+        ellipsis: The string to use for the ellipsis.
+        newline_replacement: The string to replace newline tokens with.
+        newline_token: The substring to replace with newline_replacement.
+        whitespace_replacement: The string to replace whitespace tokens with.
+        whitespace_token: The substring to replace with whitespace_replacement.
+        topk: The number of tokens to visualize when hovering over a cell.
+        topk_diff: If true show the top k tokens where the metric has changed the from
+            the previous layer.
+
+    Returns:
+        A plotly figure containing the lens table.
+    """
+    if topk < 1:
+        raise ValueError("topk must be greater than 0")
+
+    if text is not None:
+        input_ids = cast(th.Tensor, tokenizer.encode(text, return_tensors="pt"))
+    elif input_ids is None:
+        raise ValueError("Either text or input_ids must be provided")
+
+    if input_ids.nelement() < 1:
+        raise ValueError("Input must be at least 1 token long.")
+
+    with record_residual_stream(model) as stream:
+        if input_att_mask is None:
+            outputs = model(input_ids.to(model.device))
+        else:
+        # prompt is left pad, response is right pad, related is left pad
+        # _ _ _ _ prompt | response _ _ _
+            outputs = model(input_ids.to(model.device), attention_mask=input_att_mask)
+
+    responseOutput = None
+    # needs an attention mask for full prompt, but input ids dont include past keys, logits are just for response tokens
+    if input_att_mask is not None and response_att_mask is not None:
+        full_att = th.cat(input_att_mask, response_att_mask, dim=1)
+        responseOutput = model(input_ids=response_ids, attention_mask=full_att, past_key_values=outputs.past_key_values)
+    elif response_ids is not None:
+        responseOutput = model(input_ids=response_ids, past_key_values=outputs.past_key_values)
+
+    tokens = tokenizer.convert_ids_to_tokens(input_ids.squeeze().tolist())
+    model_logits = outputs.logits[..., start_pos:end_pos, :]
+    stream = stream.map(lambda x: x[..., start_pos:end_pos, :])
+    targets = th.cat(
+        (input_ids, th.full_like(input_ids[..., -1:], tokenizer.eos_token_id)),
+        dim=-1,
+    )
+    t_start_pos = start_pos if start_pos < 0 else start_pos + 1
+    if end_pos is None:
+        t_end_pos = None
+    elif end_pos < 0:
+        t_end_pos = end_pos
+    else:
+        t_end_pos = end_pos + 1
+
+    targets = targets[..., t_start_pos:t_end_pos]
+    tokens = tokens[start_pos:end_pos]
+
+    def decode_tl(h, i):
+        logits = lens.forward(h, i)
+        if mask_input:
+            logits[..., input_ids] = -th.finfo(h.dtype).max
+
+        return logits.log_softmax(dim=-1)
+
+    hidden_lps = stream.zip_map(
+        decode_tl,
+        range(len(stream) - 1),
+    )
+    # Add model predictions
+    hidden_lps.layers.append(
+        outputs.logits.log_softmax(dim=-1)[..., start_pos:end_pos, :]
+    )
+
+    # print(hidden_lps.layers)
+    # print(hidden_lps.layers[0].shape)
+    return hidden_lps, responseOutput
+
 
 @th.autocast("cuda", enabled=th.cuda.is_available())
 @th.no_grad()
@@ -144,6 +275,9 @@ def plot_lens(
     hidden_lps.layers.append(
         outputs.logits.log_softmax(dim=-1)[..., start_pos:end_pos, :]
     )
+
+    print(hidden_lps.layers)
+    print(hidden_lps.layers[0].shape)
 
     # Replace whitespace and newline tokens with their respective replacements
     format_fn = np.vectorize(
